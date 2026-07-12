@@ -3,7 +3,7 @@
 > An example code for your minecraft server.
 
 **⚠️ IMPORTANT:** You need to change all mentions of "GOLD SMP" to your server name.
-**Ignore comments in russian or delete them.
+**Ignore comments in russian or delete them.**
 
 ---
 
