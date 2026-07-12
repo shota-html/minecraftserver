@@ -1,0 +1,1542 @@
+on join:
+    set title of player's fastboard to "&6&lGOLD &fSMP"
+    
+    if {banned::*} contains player:
+        kick player due to "&cYou are banned!"
+        stop
+    send "&aWelcome to the Gold SMP!" to player
+    if {balance::%player%} is not set:
+        set {balance::%player%} to 1000
+        send "&eYou received $1000 to get started!" to player
+    if {sparks::%player%} is not set:
+        set {sparks::%player%} to 50
+        send "&5You got 50 sparks to get started!" to player
+    send "&aYour balance: $%{balance::%player%}%" to player
+on load:
+    set {_tfl} to totem of undying of silk touch named "Feather talisman"
+
+    register new shaped recipe for {_tfl} using phantom membrane, phantom membrane, phantom membrane, phantom membrane, totem of undying, phantom membrane, gold block, feather and gold block with id "talisman_fet" in group "talismans"
+
+command /setbounty <offlineplayer> <number>:
+    trigger: 
+        if arg-2 <= 0:
+            send "&cУкажите сумму больше 0!" to player
+            stop
+        if {bountu::%uuid of arg-1%} is set:
+            send "&cНа этого игрока уже объявлена награда!" to player
+            stop
+        if {balance::%player%} < arg-2:
+            send "&cУ вас недостаточно денег!" to player
+            stop
+        
+        remove arg-2 from {balance::%player%}
+        set {bountu::%uuid of arg-1%} to arg-2
+        set {bountu::name::%uuid of arg-1%} to name of arg-1
+        send "&aВы объявили награду за голову %arg-1% в размере &2$%arg-2%&a!" to player
+
+command /bounty:
+    trigger:
+        set {_inv} to chest inventory with 6 rows named "Bounty"
+        set {_slot} to 0
+        
+        loop {bountu::*}:
+            if {_slot} > 53:
+                stop loop
+            
+            set {_uuid} to loop-index
+            set {_player_name} to {bountu::name::%{_uuid}%}
+            set {_amount} to loop-value
+            
+            if {_player_name} is not set:
+                set {_player_name} to "Неизвестный игрок"
+
+            if {_amount} >= 1000000000000:
+                set {_amountt} to "%round({_amount} / 1000000000000 * 100) / 100%T"
+            else if {_amount} >= 1000000000:
+                set {_amountt} to "%round({_amount} / 1000000000 * 100) / 100%B"
+            else if {_amount} >= 1000000:
+                set {_amountt} to "%round({_amount} / 1000000 * 100) / 100%M"
+            else if {_amount} >= 1000:
+                set {_amountt} to "%round({_amount} / 1000 * 100) / 100%K"
+            else:
+                set {_amountt} to "%{_amount}%"
+            
+            set {_item} to paper named "&f%{_player_name}%" with lore "&7Награда: &a$%{_amountt}%"
+            set slot {_slot} of {_inv} to {_item}
+            add 1 to {_slot}
+        
+        open {_inv} to player
+
+on inventory click:
+    if name of event-inventory is "Bounty":
+        cancel event
+
+command /tpa <player>:
+    trigger:
+        set {tpc::%arg-1%} to true
+        set {tpt::%arg-1%} to player
+        send action bar "&aRequest sent!" to player
+        send "&ePlayer %player% wants to teleport to you!" to arg-1
+        send "&aUse &6/tpaccept &ato accept!" to arg-1
+
+command /tpaccept:
+    trigger:
+        if {tpc::%player%} is not true:
+            send "&cYou don't have any teleport requests!" to player
+            stop
+        set {_tp} to {tpt::%player%}
+        if {_tp} is not online:
+            send "&cPlayer is offline!" to player
+            delete {tpc::%player%}
+            delete {tpt::%player%}
+            stop
+        teleport {_tp} to player
+        send "&aTeleported!" to player
+        send "&aYou were teleported to %player%!" to {_tp}
+        delete {tpc::%player%}
+        delete {tpt::%player%}
+
+command /panel:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        set {_shp} to chest inventory with 3 rows named "Admin panel"
+        set {_kb} to stick named "&4Admin stick"
+        enchant {_kb} with silk touch
+        enchant {_kb} with knockback 30
+        set {_dmac} to mace named "&4Spark mace"
+        enchant {_dmac} with density 7, wind burst 3, mending 1, unbreaking 5, fire aspect 3
+        set {_donpi} to netherite pickaxe named "&4Spark pickaxe"
+        enchant {_donpi} with unbreaking 5, efficiency 10, fortune 5, mending
+        set slot 10 of {_shp} to {_kb}
+        set slot 11 of {_shp} to {_dmac}
+        set slot 12 of {_shp} to {_donpi}
+        open {_shp} to player
+
+on smelting start:
+    if name of event-block is "&4Ultra-furnace":
+        set the fuel slot of event-block to coal
+        set total cook time of event-block to 1 second
+
+on fuel burn:
+    if name of event-block is "&4Ultra-furnace":
+        if the fuel slot of event-block is air:
+            set the fuel slot of event-block to coal
+
+command /createwarp <text>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        set {warp::%arg-1%} to location of player
+        send action bar "&aWarp %arg-1% was created!" to player
+
+command /warps:
+    trigger:
+        set {_size} to size of {warp::*}
+        send "&eSize: %{_size}%" to player
+        if {_size} is 0:
+            send "&cNo warps found!" to player
+        else:
+            loop {warp::*}:
+                send "&a- %loop-index%" to player
+
+command /msg <player> <strings>:
+    trigger:
+        send "&6%player% &f - &6 %arg-1%: &f%arg-2%" to player
+        send "&a%player% sent you a message: %arg-2%" to arg-1
+
+command /delwarp <text>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        if {warp::%arg-1%} is not set:
+            send "&cWarp %arg-1% does not exist!" to player
+            stop
+        delete {warp::%arg-1%}
+        send action bar "&cWarp %arg-1% was deleted!" to player
+
+command /warp <text>:
+    trigger:
+        if {warp::%arg-1%} is not set:
+            send "&cWarp %arg-1% does not exist!" to player
+            stop
+        teleport player to {warp::%arg-1%}
+        send "&aTeleported to %arg-1%" to player
+
+on damage:
+    victim is a player
+    attacker is a player
+    if attacker's offhand tool is totem of undying:
+        set {_tool} to attacker's offhand tool
+        set {_name} to uncolored name of {_tool}
+        if enchantment level of silk touch of {_tool} > 0:
+            if {_name} is "Blood talisman":
+                chance of 20%:
+                    heal the attacker by 2 hearts
+            else if {_name} is "Dark talisman":
+                chance of 5%:
+                    apply blindness to the victim for 20 seconds
+    else if victim's offhand tool is totem of undying:
+        set {_tool} to victim's offhand tool
+        set {_name} to uncolored name of {_tool}
+        if enchantment level of silk touch of {_tool} > 0:
+            if {_name} is "Blood talisman":
+                chance of 20%:
+                    heal the attacker by 2 hearts
+            else if {_name} is "Dark talisman":
+                chance of 15%:
+                    apply blindness to the attacker for 20 seconds
+
+every 1 second in "world":
+    loop all players:
+        set {_p} to loop-player
+        
+        # ТАЛИСМАНЫ (Твой оригинальный код)
+        if {_p}'s offhand tool is totem of undying:
+            set {_tool} to {_p}'s offhand tool
+            set {_name} to uncolored name of {_tool}
+            if enchantment level of silk touch of {_tool} > 0:
+                if {_name} is "Sapper's talisman":
+                    apply resistance 2 to {_p} for 1.5 seconds
+                else if {_name} is "Flash talisman":
+                    apply speed 2 to {_p} for 1.5 seconds
+                else if {_name} is "HP talisman":
+                    apply health boost to {_p} for 1.5 seconds
+        
+        # БАЛАНС И ФОРМАТИРОВАНИЕ
+        set {_bal} to {balance::%{_p}%} ? 0
+        if {_bal} >= 1000000000000:
+            set {_formatted} to "%round({_bal} / 1000000000000 * 100) / 100%T"
+        else if {_bal} >= 1000000000:
+            set {_formatted} to "%round({_bal} / 1000000000 * 100) / 100%B"
+        else if {_bal} >= 1000000:
+            set {_formatted} to "%round({_bal} / 1000000 * 100) / 100%M"
+        else if {_bal} >= 1000:
+            set {_formatted} to "%round({_bal} / 1000 * 100) / 100%K"
+        else:
+            set {_formatted} to "%{_bal}%"
+        
+        # СТАТИЧНЫЕ СТРОКИ (1-5)
+        set line 1 of {_p}'s fastboard to "&a• Nick: &f%name of {_p}%&r"
+        set line 2 of {_p}'s fastboard to "&7  "
+        set line 3 of {_p}'s fastboard to "&a💲 Balance: &f$%{_formatted}%"
+        set line 4 of {_p}'s fastboard to "&5💎 Sparks: &f%({sparks::%{_p}%} ? 0)%"
+        set line 5 of {_p}'s fastboard to "&a⌛ Ping: &f%ping of {_p}% ms"
+        
+        # ДИНАМИЧЕСКИЙ БЛОК ПВП (Строки 6, 7, 8)
+        if {combat_timer::%{_p}%} is set:
+            if {combat_timer::%{_p}%} > 0:
+                remove 1 from {combat_timer::%{_p}%}
+                set line 6 of {_p}'s fastboard to "&4&lCombat mode: %{combat_timer::%{_p}%}% s"
+                set line 7 of {_p}'s fastboard to "&7  " # Отступ, пока идет бой
+            else:
+                # Время вышло — полностью убираем боевые строки
+                delete {combat_timer::%{_p}%}
+                delete {canchat::%{_p}%}
+                send "&aYou are no longer in combat." to {_p}
+                set line 6 of {_p}'s fastboard to "&7  " # Оставляем ровно один дефолтный отступ после пинга
+                set line 7 of {_p}'s fastboard to ""
+        else:
+            # Если игрок не в бою — оставляем только один аккуратный отступ, а 7-ю строку обнуляем
+            set line 6 of {_p}'s fastboard to "&7  "
+            
+        # РЕКЛАМА СЕРВЕРА
+        set line 8 of {_p}'s fastboard to "&6gold&fsmp&7serv.mcsh.io"
+
+command /sun:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        set weather to clear
+        send "&aWeather set to clear." to player
+
+command /rain:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        set weather to rainy 
+        send "&aWeather set to rainy." to player
+
+command /night:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        set time of world to 18:00
+        send "&aTime set to night." to player
+
+command /day:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        set time of world to 7:00
+        send "&aTime set to day." to player
+
+command /fly:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        if player is flying:
+            force player to stop flying
+            send "&aFlight mode off." to player
+        else:
+            make player fly
+            send "&aFlight mode is on." to player
+
+command /ban <player> <text>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        add arg-1 to {banned::*}
+        kick arg-1 due to "&cYou have been banned!%nl%&7Reason: %arg-2%"
+        send "&a%arg-1% has been banned!" to player
+
+command /unban <offlineplayer>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        if {banned::*} does not contain arg-1:
+            send "&c%arg-1% is not banned!" to player
+            stop
+        remove arg-1 from {banned::*}
+        send "&a%arg-1% was unbanned!" to player
+
+command /checkban <offlineplayer>:
+    trigger:
+        if {banned::*} contains arg-1:
+            send "&cPlayer %arg-1% is banned." to player
+        else:
+            send "&a%arg-1% is not banned!" to player
+
+command /mute <player> <text>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        add arg-1 to {muted::*}
+        send "&cYou have been muted by moderation with reason: %arg-2%" to arg-1
+        send "&a%arg-1% has been muted!" to player
+
+command /unmute <player>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        if {muted::*} does not contain arg-1:
+            send "&c%arg-1% is not muted!" to player
+            stop
+        remove arg-1 from {muted::*}
+        send "&a%arg-1% was unmuted!" to player
+        send "&aYou have been unmuted!" to arg-1
+
+on chat:
+    if {muted::*} contains player:
+        cancel event
+        send "&cYou are muted!" to player
+        stop
+    cancel event
+    if {admins::*} contains player:
+        broadcast "&4<u:1F6E0> %player% &9>&f %message%"
+        stop
+    broadcast "%player% &9>&f %message%"
+
+on command "/seed" or "/locate":
+  send "&cYou dont have rights to use this command!" to player
+  cancel event
+  stop
+
+command /sell:
+    trigger:
+        if player's tool is air:
+            send "&cYou must hold an item in your hand!" to player
+            stop
+        set {_item} to player's tool
+        set {_type} to type of {_item}
+        set {_amount} to amount of {_item}
+        
+        if {_amount} is 0:
+            send "&cYou don't have any items to sell!" to player
+            stop
+        
+        if {_type} is diamond:
+            set {_price} to 1000
+        else if {_type} is emerald:
+            set {_price} to 800
+        else if {_type} is gold ingot:
+            set {_price} to 500
+        else if {_type} is iron ingot:
+            set {_price} to 400
+        else if {_type} is lapis lazuli:
+            set {_price} to 400
+        else if {_type} is quartz:
+            set {_price} to 200
+        else if {_type} is redstone:
+            set {_price} to 300
+        else if {_type} is ancient debris or netherite scrap:
+            set {_price} to 7500
+        else if {_type} is netherite ingot:
+            set {_price} to 30000
+        else if {_type} is copper ingot:
+            set {_price} to 150
+        else if {_type} is coal:
+            set {_price} to 150
+        else if {_type} is amethyst shard:
+            set {_price} to 900
+        else if {_type} is sugar cane:
+            set {_price} to 200
+        else if {_type} is paper:
+            set {_price} to 400
+        else if {_type} is gunpowder:
+            set {_price} to 500
+        else if {_type} is blaze rod:
+            set {_price} to 1500
+        else if {_type} is ender pearl:
+            set {_price} to 400
+        else if {_type} is mace:
+            set {_price} to 20000
+        else if {_type} is totem of undying:
+            set {_price} to 1000
+        else if {_type} is end crystal:
+            set {_price} to 4000
+        else if {_type} is elytra:
+            set {_price} to 50000
+        else if {_type} is trident:
+            set {_price} to 1500
+        else if {_type} is golden apple:
+            set {_price} to 500
+        else if {_type} is enchanted golden apple:
+            set {_price} to 15000
+        else if {_type} is nether star:
+            set {_price} to 12500
+        else if {_type} is leather:
+            set {_price} to 250
+        else if {_type} is string:
+            set {_price} to 200
+        else if {_type} is netherite upgrade smithing template:
+            set {_price} to 5000
+        else if {_type} is trial key:
+            set {_price} to 2500
+        else if {_type} is ominous trial key:
+            set {_price} to 5000
+        else if {_type} is bone meal:
+            set {_price} to 150
+        else if {_type} is rotten flesh:
+            set {_price} to 100
+        else if {_type} is kelp:
+            set {_price} to 150
+        else if {_type} is wildflowers or air:
+            set {_price} to 0
+        else:
+            set {_price} to 5
+            
+        set {_total} to {_amount} * {_price}
+        remove {_amount} of {_type} from player's inventory
+        add {_total} to {balance::%player%}
+        send "&aYou sold %{_amount}% %{_type}% for $%{_total}% ( $%{_price}% each )" to player
+
+command /givemoney <player> <number>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        add arg-2 to {balance::%arg-1%}
+        send "&aYou gave %arg-1% $%arg-2%." to player
+        send "&aYou received $%arg-2%!" to arg-1
+
+command /take <player> <number>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        if arg-2 > {balance::%arg-1%}:
+            send "Player %arg-1% had less money than %arg-2%, resetting their money to 0." to player
+            set {balance::%arg-1%} to 0
+            send "&cAn Admin reset your money to 0!" to arg-1
+            stop
+        remove arg-2 from {balance::%arg-1%}
+        send "Removed $%arg-2% from %arg-1%." to player
+        send "&cAn Admin took $%arg-2% from your balance!" to arg-1
+
+command /heal:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        heal the player
+
+command /bal:
+    trigger:
+        set {_bal} to {balance::%player%}
+        if {_bal} is not set:
+            set {_bal} to 0
+        if {_bal} >= 1000000000000:
+            set {_formatted} to "%round({_bal} / 1000000000000)%T"
+        else if {_bal} >= 1000000000:
+            set {_formatted} to "%round({_bal} / 1000000000)%B"
+        else if {_bal} >= 1000000:
+            set {_formatted} to "%round({_bal} / 1000000)%M"
+        else if {_bal} >= 1000:
+            set {_formatted} to "%round({_bal} / 1000)%K"
+        else:
+            set {_formatted} to "%{_bal}%"
+        send action bar "&aYou have $%{_formatted}%." to player
+
+command /pay <number> <player>:
+    trigger:
+        if arg-1 <= 0:
+            send "&cEnter a valid amount!" to player
+            stop
+        if {balance::%player%} < arg-1:
+            send "&cYou don't have enough money!" to player
+            stop
+        if arg-2 is player:
+            send "&cYou cannot pay yourself!" to player
+            stop
+        remove arg-1 from {balance::%player%}
+        add arg-1 to {balance::%arg-2%}
+        send "&aYou sent $%arg-1% to %arg-2%." to player
+        send "&aYou received $%arg-1% from %player%." to arg-2
+
+command /delhome:
+    trigger:
+        if {home::%player%} is not set:
+            send "&cYou don't have a home! Type /sethome" to player
+            stop
+        delete {home::%player%}
+        send action bar "&aHome successfully deleted!" to player
+
+command /home:
+    trigger:
+        if {home::%player%} is not set:
+            send "&cYou don't have a home! Type /sethome" to player
+            stop
+        teleport player to {home::%player%}
+        send "&aTeleported home!" to player
+
+command /sethome:
+    trigger:
+        if {home::%player%} is set:
+            send "&cYou already have a home set!" to player
+            stop
+        set {home::%player%} to location of player
+        send action bar "&aHome successfully saved!" to player
+
+command /tphere <player>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        teleport arg-1 to player
+        send action bar "&aSuccessful!" to player
+
+command /tp <player>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        teleport player to arg-1
+        send action bar "&aSuccessful!" to player
+
+command /ec:
+    trigger:
+        open the player's ender chest to the player
+
+command /wb:
+    trigger:
+        open crafting table to player
+
+command /unbanme:
+    permission: op
+    trigger:
+        remove player from {banned::*}
+        send "&aYou unbanned yourself!" to player
+
+command /deladmin <player>:
+  permission: op
+  trigger:
+    remove arg-1 from {admins::*}
+    send "&c%arg-1% is now not an admin." to player
+
+command /addadmin <player>:
+    permission: op
+    trigger:
+        add arg-1 to {admins::*}
+        send "&a%arg-1% is now an admin." to player
+
+command /rtp:
+    trigger:
+        set {_inv} to chest inventory with 3 rows named "&8RTP"
+        loop 27 times:
+            set slot loop-number - 1 of {_inv} to light blue stained glass pane named " "
+        set slot 11 of {_inv} to grass block named "&aOverworld"
+        set slot 13 of {_inv} to netherrack named "&cNether"
+        set slot 15 of {_inv} to end stone named "&5The End"
+        open {_inv} to player
+
+command /shop:
+    trigger:
+        set {_shp} to chest inventory with 6 rows named "Shop"
+        loop 54 times:
+            set slot loop-number - 1 of {_shp} to black stained glass pane named " "
+        set slot 10 of {_shp} to shulker box with lore "&a$2K"
+        set slot 11 of {_shp} to totem of undying with lore "&a$1.6K"
+        set slot 12 of {_shp} to golden apple with lore "&a$900"
+        set slot 13 of {_shp} to ender pearl with lore "&a$800"
+        set slot 14 of {_shp} to wind charge with lore "&a$400"
+        set slot 15 of {_shp} to firework rocket with lore "&a$100"
+        set slot 16 of {_shp} to golden carrot with lore "&a$400"
+        set slot 19 of {_shp} to end crystal with lore "&a$10K"
+        
+        set {_donaxe} to netherite axe named "&5Spark axe" with lore "&a$200K"
+        enchant {_donaxe} with sharpness 10, unbreaking 5, efficiency 5, fire aspect 3, mending
+        set slot 20 of {_shp} to {_donaxe}
+        
+        set slot 21 of {_shp} to mace with lore "&a$100K"
+        set {_flt} to totem of undying named "Flash talisman"
+        enchant {_flt} with silk touch
+        set slot 22 of {_shp} to {_flt} with lore "&a$500K", "&7Speed Ⅱ"
+        set slot 23 of {_shp} to trident with lore "&a$3K"
+        set slot 24 of {_shp} to nether star with lore "&a$20K"
+        
+        set {_donsp} to netherite spear named "&5Spark spear" with lore "&5200 Sparks", "&f| &l&5Left-click - unleash a fireball"
+        enchant {_donsp} with mending, knockback 3, looting 5, unbreaking 5, fire aspect 3, sharpness 6, lunge 5
+        set slot 25 of {_shp} to {_donsp}
+        
+        set {_donh} to netherite helmet named "&5Spark helmet" with lore "&5100 Sparks"
+        enchant {_donh} with mending, protection 5, blast protection 5, fire protection 5, aqua affinity, projectile protection 5, respiration 5, unbreaking 5
+        set slot 28 of {_shp} to {_donh}
+        
+        set {_donc} to netherite chestplate named "&5Spark chestplate" with lore "&5100 Sparks"
+        enchant {_donc} with mending, protection 5, blast protection 5, fire protection 5, projectile protection 5, unbreaking 5
+        set slot 29 of {_shp} to {_donc}
+        
+        set {_donl} to netherite leggings named "&5Spark leggings" with lore "&5100 Sparks"
+        enchant {_donl} with mending, protection 5, blast protection 5, fire protection 5, projectile protection 5, unbreaking 5
+        set slot 30 of {_shp} to {_donl}
+        
+        set {_donb} to netherite boots named "&5Spark boots" with lore "&5100 Sparks"
+        enchant {_donb} with mending, protection 5, blast protection 5, fire protection 5, projectile protection 5, unbreaking 5, feather falling 5, depth strider 3
+        set slot 31 of {_shp} to {_donb}
+        
+        set slot 32 of {_shp} to obsidian with lore "&a$5K"
+        set slot 33 of {_shp} to respawn anchor with lore "&a$10K"
+        set slot 34 of {_shp} to glowstone with lore "&a$2.5K"
+        
+        set {_donsw} to netherite sword named "&5Spark sword" with lore "&5400 Sparks", "&a| &4Right-click - Start rage mode."
+        enchant {_donsw} with sharpness 10, unbreaking 5, fire aspect 3, mending, looting 5, sweeping edge 5
+        set slot 37 of {_shp} to {_donsw}
+        
+        set {_donpi} to netherite pickaxe named "&5Spark pickaxe" with lore "&5400 Sparks", "&5Breaks 9 blocks at once."
+        enchant {_donpi} with unbreaking 5, efficiency 5, fortune 5, mending
+        set slot 38 of {_shp} to {_donpi}
+        
+        set slot 41 of {_shp} to cobweb with lore "&a$300"
+        set {_ulf} to furnace named "&4Ultra-furnace" with lore "&a$20K", "&5Features:", "", "&7Doesnt need any fuel (Just place 1 coal and it will be infinite)"
+        enchant {_ulf} with efficiency 5
+        set slot 39 of {_shp} to {_ulf}
+        set {_cpi} to netherite pickaxe named "&1Sonic pickaxe"
+        enchant {_cpi} with efficiency 8, unbreaking 5, mending, fortune 3
+        set slot 40 of {_shp} to {_cpi} with lore "&a$800K"
+        set {_tpe} to totem of undying named "Sapper's talisman"
+        enchant {_tpe} with silk touch
+        set slot 42 of {_shp} to {_tpe} with lore "&a$1.5M", "&7Explosion protection Ⅲ"
+        set {_dmac} to mace named "&5Spark mace"
+        enchant {_dmac} with density 7, wind burst 3, mending 1, unbreaking 5, fire aspect 3
+        set slot 43 of {_shp} to {_dmac} with lore "&5550 Sparks", "&5Right click to push yourself upwards."
+        set slot 53 of {_shp} to arrow named "&aNext page..."
+        
+        open {_shp} to player
+
+
+
+on right click:
+    # Проверяем, что в руке именно эндер-перл (работает и с переименованными)
+    if player's tool is ender pearl:
+        
+        # Проверяем кулдаун
+        if metadata value "ep_cooldown" of player is set:
+            cancel event
+            send "§cПодождите 5 секунд между бросками!" to player
+            stop
+            
+        # Твоя проверка чата
+        if {canchat::%player%} is true:
+            # Включаем кулдаун
+            set metadata value "ep_cooldown" of player to true
+            
+            # Ждем 5 секунд и выключаем
+            wait 5 seconds
+            clear metadata value "ep_cooldown" of player
+        else:
+            # Если {canchat} false, перл не должен кидаться? Если так, раскомментируй строку ниже:
+            # cancel event
+on right click:
+    if player's tool is set:
+        if name of player's tool is "&5Spark sword":
+            if {cooldown::%player%} is set:
+                if difference between {cooldown::%player%} and now is less than 5 minutes:
+                    send action bar "&cCooldown 300 seconds!" to player
+                    stop
+            set {cooldown::%player%} to now
+            apply speed 3 to player for 30 seconds
+            apply strength 3 to player for 30 seconds
+            apply wither 3 to player for 5 seconds
+            apply haste 3 to player for 30 seconds
+            send title "&4RAGE MODE" to player for 2 seconds
+            play sound "entity.wither.spawn" with volume 1 and pitch 1 to player
+        else if name of player's tool is "&4Admin stick":
+            cancel event # Чтобы админ случайно не кликал палкой по блокам-инвентарям
+            spawn lightning bolt at target block
+            stop
+        else if name of player's tool is "&4Spark mace":
+            push player upwards with force 1.5
+            play sound "block.respawn_anchor.charge" with volume 1 and pitch 1 to player
+        else if name of player's tool is "&5Spark mace":
+            if {cooldownM::%player%} is set:
+                if difference between {cooldownM::%player%} and now is less than 15 seconds:
+                    send action bar "&cCooldown 15 seconds!" to player
+                    stop
+            set {cooldownM::%player%} to now
+            push player upwards with force 1.5
+            play sound "block.respawn_anchor.charge" with volume 1 and pitch 1 to player
+
+command /takespark <player> <number>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        if {sparks::%arg-1%} is not set:
+            set {sparks::%arg-1%} to 0
+        if arg-2 > {sparks::%arg-1%}:
+            send "Player %arg-1% had less sparks than %arg-2%, resetting their sparks to 0." to player
+            set {sparks::%arg-1%} to 0
+            send "&cAn Admin reset your sparks to 0!" to arg-1
+            stop
+        remove arg-2 from {sparks::%arg-1%}
+        send "Removed %arg-2% sparks from %arg-1%." to player
+        send "&cAn Admin took %arg-2% sparks from your balance!" to arg-1
+
+
+command /givespark <player> <number>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        add arg-2 to {sparks::%arg-1%}
+        send action bar "&aSuccessful!" to player
+        send "&5You got %arg-2% sparks!" to arg-1
+
+command /osbal <player>:
+    trigger:
+        send action bar "&5He has %{sparks::%arg-1%}% sparks." to player
+
+command /sbal:
+    trigger:
+        send action bar "&5You have %{sparks::%player%}% sparks." to player
+
+command /clearf:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        execute console command "/effect clear %player%"
+
+command /obal <player>:
+    trigger:
+        if {admins::*} does not contain player:
+            send "&cYou don't have admin rights!" to player
+            stop
+        send action bar "&a$%{balance::%arg-1%}%" to player
+
+every 1 minute in "world":
+    loop all players:
+        add 1 to {sparks::%loop-player%}
+        send "&5You got 1 spark!" to loop-player
+
+on left click:
+    if player's tool is set:
+        if name of player's tool is "&4Admin stick":
+            cancel event # Чтобы админ случайно не ломал блоки этой палкой
+            shoot a fireball from player at speed 2
+            stop
+        if name of player's tool is "&5Spark spear":
+            apply haste 3 to player for 5 seconds
+            spawn dragon fireball 1.8 blocks in front of player
+
+command /reskeys <player>:
+  trigger:
+    set {ckey::%arg-1%} to 0
+    set {rkey::%arg-1%} to 0
+    set {lkey::%arg-1%} to 0
+    send action bar "Succesfull!"
+
+command /takekey <text> <number> <player>:
+  permission: op
+  trigger:
+    if arg-1 is "l":
+      remove arg-2 from {lkey::%arg-3%}
+    if arg-1 is "r":
+      remove arg-2 from {rkey::%arg-3%}
+    if arg-1 is "c":
+      remove arg-2 from {ckey::%arg-3%}
+    send action bar "&aSuccesfull!"
+
+command /skeys <player>:
+  trigger:
+    send "&7Common keys: %{ckey::%arg-1%}%", "&aRare keys: %{rkey::%arg-1%}%", "&6Legendary keys: %{lkey::%arg-1%}%"
+
+command /givekey <text> <number> <player>:
+  permission: op
+  trigger:
+    if arg-1 is "l":
+      add arg-2 to {lkey::%arg-3%}
+    if arg-1 is "r":
+      add arg-2 to {rkey::%arg-3%}
+    if arg-1 is "c":
+      add arg-2 to {ckey::%arg-3%}
+    send action bar "&aSuccesfull!"
+
+on consume:
+  if event-item is potion:
+    if name of event-item is "&4Blind rage":
+      apply haste 2 to player for 30 seconds
+      apply strength 2 to player for 30 seconds
+      apply blindness to player for 30 seconds
+    else if name of event-item is "&9Adrenaline potion":
+      apply speed 2 to player for 30 seconds
+      apply haste 2 to player for 30 seconds
+      apply strength 2 to player for 30 seconds
+      wait 30 seconds
+      apply slowness 2 to player for 20 seconds
+      apply weakness 2 to player for 20 seconds
+
+command /givele:
+  permission: op
+  trigger:
+    set {_ck} to yellow shulker box named "&6Legendary case"
+    give {_ck} to player
+
+command /renameblock <text>:
+    permission: op
+    permission message: &cУ вас нет прав!
+    trigger:
+        # Проверяем, смотрит ли игрок на блок
+        if targeted block is air:
+            send "&cВы должны смотреть на блок (например, шалкер)!" to player
+            stop
+            
+        # Меняем имя блока на текст из аргумента (с поддержкой цветов)
+        set name of targeted block to colored arg-1
+        
+        # Эффект успешного изменения
+        send "&6&lGOLD &f&lSMP &8» &aИмя блока изменено на: %colored arg-1%" to player
+        play sound "block.anvil.use" with volume 0.5 and pitch 1.5 to player
+
+command /keys:
+  trigger:
+    send "&7Common keys: %{ckey::%player%}%", "&aRare keys: %{rkey::%player%}%", "&6Legendary keys: %{lkey::%player%}%"
+
+command /givera:
+  permission: op
+  trigger:
+    set {_ck} to green shulker box named "&aRare case"
+    give {_ck} to player
+
+command /giveck:
+  permission: op
+  trigger:
+    set {_ck} to brown shulker box named "&7Common case"
+    give {_ck} to player
+
+on inventory click:
+    # Игнорируем обычные клики в креативе, чтобы вещи не пропадали
+    if player's gamemode is creative:
+        if name of event-inventory is not "Shop" or "Shop 2" or "&8RTP" or "Bounty" or "&7Common case" or "&aRare case" or "&6Legendary case" or "Admin panel":
+            stop
+    if name of event-inventory is "Shop" or "Shop 2" or "&8RTP" or "Bounty" or "&7Common case" or "&aRare case" or "&6Legendary case" or "Admin panel":
+        cancel event
+
+    # ------------------------------------------
+    # МАГАЗИН: СТРАНИЦА 1
+    # ------------------------------------------
+    if name of event-inventory is "Admin panel":
+        cancel event # Сразу стопим любые клики для всех
+        
+        # Проверяем слоты напрямую внутри этого же условия
+        if index of event-slot is 12:
+            set {_donpi} to netherite pickaxe named "&4Spark pickaxe"
+            enchant {_donpi} with unbreaking 5, efficiency 10, fortune 5, mending
+            give {_donpi} to player
+            send "&a[Panel] &fYou got &4Spark pickaxe&f!" to player
+            play sound "entity.item.pickup" with volume 0.5 to player
+            stop
+            
+        else if index of event-slot is 11:
+            set {_dmac} to mace named "&4Spark mace"
+            enchant {_dmac} with density 7, wind burst 3, mending 1, unbreaking 5, fire aspect 3
+            give {_dmac} to player
+            send "&a[Panel] &fYou got &4Spark mace&f!" to player
+            play sound "entity.item.pickup" with volume 0.5 to player
+            stop
+            
+        else if index of event-slot is 10:
+            set {_kb} to stick named "&4Admin stick"
+            enchant {_kb} with silk touch
+            enchant {_kb} with knockback 30
+            give {_kb} to player
+            send "&a[Panel] &fYou got &4Admin stick&f!" to player
+            play sound "entity.item.pickup" with volume 0.5 to player
+            stop
+    if name of event-inventory is "Shop":
+        cancel event
+        
+        if index of event-slot is 53:
+            set {_shpn} to chest inventory with 6 rows named "Shop 2"
+            loop 54 times:
+                set slot loop-number -1 of {_shpn} to black stained glass pane named " "
+            
+            set {_tlb} to totem of undying named "Blood talisman"
+            set {_tld} to totem of undying named "Dark talisman"
+            set {_tlh} to totem of undying named "HP talisman"
+            set {_smss} to spawner named "&lSkeleton spawner"
+            set {_adp} to potion named "&9Adrenaline potion"
+            set {_brp} to potion named "&4Blind rage"
+            enchant {_adp} with silk touch
+            enchant {_brp} with silk touch
+            enchant {_tlb} with silk touch
+            enchant {_tld} with silk touch
+            enchant {_tlh} with silk touch
+            
+            set slot 10 of {_shpn} to {_tlb} with lore "&a$1M", "&7Regeneration III"
+            set slot 11 of {_shpn} to {_tld} with lore "&a$1M", "&7Dark I"
+            set slot 12 of {_shpn} to {_tlh} with lore "&a$1M", "&7More hearts I"
+            set slot 13 of {_shpn} to {_smss} with lore "&5360 Sparks"
+            set slot 14 of {_shpn} to {_adp} with lore "&a$1M", "&7Gives you speed 2, haste 2, strength 2 for 30 seconds", "&7Then weakness 2, slowness 2 for 20 seconds"
+            set slot 15 of {_shpn} to {_brp} with lore "&a$700K", "&7Gives you haste 2 and strength 2 for 30 seconds, but blindness"
+            set slot 16 of {_shpn} to enchanted golden apple with lore "&a$20K"
+            set slot 19 of {_shpn} to experience bottle with lore "&a$1K"
+            set slot 53 of {_shpn} to arrow named "&aBack..."
+            open {_shpn} to player
+            stop
+        
+        if event-slot is not set:
+            stop
+            
+        set {_spark_cost} to false
+        set {_raw_lore} to uncolored line 1 of lore of event-slot
+        
+        if {_raw_lore} contains "Sparks":
+            set {_spark_cost} to true
+            replace all " Sparks" with "" in {_raw_lore}
+        else:
+            replace all "$" and "K" and "M" and "B" with "" in {_raw_lore}
+            
+        set {_cost} to {_raw_lore} parsed as number
+        
+        if {_spark_cost} is false:
+            if uncolored line 1 of lore of event-slot contains "K":
+                set {_cost} to {_cost} * 1000
+            else if uncolored line 1 of lore of event-slot contains "M":
+                set {_cost} to {_cost} * 1000000
+            else if uncolored line 1 of lore of event-slot contains "B":
+                set {_cost} to {_cost} * 1000000000
+        
+        if {_cost} > 0:
+            if {_spark_cost} is true:
+                if {sparks::%player%} >= {_cost}:
+                    remove {_cost} from {sparks::%player%}
+                    set {_item} to event-slot
+                    set lore of {_item} to ""
+                    give {_item} to player
+                    send action bar "&5Purchase successful! -%{_cost}% sparks" to player
+                    play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+                else:
+                    send action bar "&cYou don't have enough sparks! Need: %{_cost}%" to player
+                    play sound "entity.enderman.teleport" with volume 0.5 and pitch 0.5 to player
+            else:
+                if {balance::%player%} >= {_cost}:
+                    remove {_cost} from {balance::%player%}
+                    set {_item} to event-slot
+                    set lore of {_item} to ""
+                    give {_item} to player
+                    send action bar "&aSuccessful purchase! -$%{_cost}%" to player
+                    play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+                else:
+                    send action bar "&cYou cannot afford this! Need: $%{_cost}%" to player
+                    play sound "entity.enderman.teleport" with volume 0.5 and pitch 0.5 to player
+        else:
+            send action bar "&cThis item is not for sale!" to player
+
+    # ------------------------------------------
+    # МАГАЗИН: СТРАНИЦА 2
+    # ------------------------------------------
+    if name of event-inventory is "&aRare case":
+        if index of event-slot is 22:
+            if {rkey::%player%} < 1:
+                send "&cYou dont have enough keys!" to player
+                play sound "entity.enderman.teleport" with volume 0.5 and pitch 0.5 to player
+                stop
+            remove 1 from {rkey::%player%}
+            
+            set {_n} to random integer between 1 and 105
+            
+            # Распределяем строго раздельные шансы
+            if {_n} <= 15:
+                set {_dh} to netherite helmet
+                set {_name} to "netherite helmet"
+            else if {_n} <= 30:
+                set {_dh} to netherite chestplate
+                set {_name} to "netherite chestplate"
+            else if {_n} <= 45:
+                set {_dh} to netherite leggings
+                set {_name} to "netherite leggings"
+            else if {_n} <= 60:
+                set {_dh} to netherite boots
+                set {_name} to "netherite boots"
+            else if {_n} <= 75:
+                set {_dh} to netherite sword
+                set {_name} to "netherite sword"
+            else if {_n} <= 90:
+                set {_dh} to netherite axe
+                set {_name} to "netherite axe"
+            else:
+                set {_dh} to netherite pickaxe
+                set {_name} to "netherite pickaxe"
+            
+            # Зачаровываем и выдаем ОДИН выпавший предмет
+            if {_name} is "netherite sword":
+                enchant {_dh} with sharpness 3
+                enchant {_dh} with unbreaking 2
+            else if {_name} is "netherite helmet" or "netherite chestplate" or "netherite leggings" or "netherite boots":
+                enchant {_dh} with protection 2
+                enchant {_dh} with unbreaking 3
+            else:
+                enchant {_dh} with efficiency 3
+                enchant {_dh} with unbreaking 2
+                
+            give {_dh} to player
+            send "&aYou won %{_name}%!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+            stop
+    if name of event-inventory is "&6Legendary case":
+        if index of event-slot is 22:
+            if {lkey::%player%} < 1:
+                send "&cYou dont have enough keys!" to player
+                play sound "entity.enderman.teleport" with volume 0.5 and pitch 0.5 to player
+                stop
+            remove 1 from {lkey::%player%}
+            
+            set {_n} to random integer between 1 and 105
+            
+            # Распределяем строго раздельные шансы
+            if {_n} <= 15:
+                set {_dh} to netherite helmet
+                set {_name} to "netherite helmet"
+            else if {_n} <= 30:
+                set {_dh} to netherite chestplate
+                set {_name} to "netherite chestplate"
+            else if {_n} <= 45:
+                set {_dh} to netherite leggings
+                set {_name} to "netherite leggings"
+            else if {_n} <= 60:
+                set {_dh} to netherite boots
+                set {_name} to "netherite boots"
+            else if {_n} <= 75:
+                set {_dh} to totem of undying
+                set {_name} to "Sapper's talisman"
+            else if {_n} <= 90:
+                set {_dh} to elytra
+                set {_name} to "elytra"
+            else:
+                set {_dh} to netherite pickaxe
+                set {_name} to "netherite pickaxe"
+            
+            # Зачаровываем и выдаем ОДИН выпавший предмет
+            if {_name} is "elytra":
+                enchant {_dh} with mending
+                enchant {_dh} with unbreaking 3
+            else if {_name} is "netherite helmet" or "netherite chestplate" or "netherite leggings" or "netherite boots":
+                enchant {_dh} with protection 4
+                enchant {_dh} with unbreaking 3
+                enchant {_dh} with mending
+            else if {_name} is "Sapper's talisman":
+                set name of {_dh} to "Sapper's talisman"
+                enchant {_dh} with silk touch
+            else if {_name} is "netherite pickaxe":
+                enchant {_dh} with fortune 3
+                enchant {_dh} with efficiency 5
+                enchant {_dh} with unbreaking 3
+                enchant {_dh} with mending
+                
+            give {_dh} to player
+            send "&aYou won %{_name}%!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+            stop
+    if name of event-inventory is "&7Common case":
+        if index of event-slot is 22:
+            if {ckey::%player%} < 1:
+                send "&cYou dont have enough keys!" to player
+                play sound "entity.enderman.teleport" with volume 0.5 and pitch 0.5 to player
+                stop
+            remove 1 from {ckey::%player%}
+            
+            set {_n} to random integer between 1 and 105
+            
+            # Распределяем строго раздельные шансы
+            if {_n} <= 15:
+                set {_dh} to diamond helmet
+                set {_name} to "diamond helmet"
+            else if {_n} <= 30:
+                set {_dh} to diamond chestplate
+                set {_name} to "diamond chestplate"
+            else if {_n} <= 45:
+                set {_dh} to diamond leggings
+                set {_name} to "diamond leggings"
+            else if {_n} <= 60:
+                set {_dh} to diamond boots
+                set {_name} to "diamond boots"
+            else if {_n} <= 75:
+                set {_dh} to diamond sword
+                set {_name} to "diamond sword"
+            else if {_n} <= 90:
+                set {_dh} to diamond axe
+                set {_name} to "diamond axe"
+            else:
+                set {_dh} to diamond pickaxe
+                set {_name} to "diamond pickaxe"
+            
+            # Зачаровываем и выдаем ОДИН выпавший предмет
+            if {_name} is "diamond sword":
+                enchant {_dh} with sharpness 1
+            else if {_name} is "diamond helmet" or "diamond chestplate" or "diamond leggings" or "diamond boots":
+                enchant {_dh} with protection 1
+            else:
+                enchant {_dh} with efficiency 1
+                
+            give {_dh} to player
+            send "&aYou won %{_name}%!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+            stop
+    if name of event-inventory is "Shop 2":
+        cancel event
+        
+        if index of event-slot is 53:
+            execute player command "/shop"
+            stop
+        
+        if index of event-slot is 13:
+            if {sparks::%player%} >= 360:
+                remove 360 from {sparks::%player%}
+                execute console command "/ss give spawner %player% skeleton 1"
+                send action bar "&5Purchase successful! -360 Sparks" to player
+                play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+            else:
+                send action bar "&cYou don't have enough sparks! Need: 360" to player
+                play sound "entity.enderman.teleport" with volume 0.5 and pitch 0.5 to player
+            stop
+        
+        if event-slot is not set:
+            stop
+            
+        set {_spark_cost} to false
+        set {_raw_lore} to uncolored line 1 of lore of event-slot
+        
+        if {_raw_lore} contains "Sparks":
+            set {_spark_cost} to true
+            replace all " Sparks" with "" in {_raw_lore}
+        else:
+            replace all "$" and "K" and "M" and "B" with "" in {_raw_lore}
+            
+        set {_cost} to {_raw_lore} parsed as number
+        
+        if {_spark_cost} is false:
+            if uncolored line 1 of lore of event-slot contains "K":
+                set {_cost} to {_cost} * 1000
+            else if uncolored line 1 of lore of event-slot contains "M":
+                set {_cost} to {_cost} * 1000000
+            else if uncolored line 1 of lore of event-slot contains "B":
+                set {_cost} to {_cost} * 1000000000
+        
+        if {_cost} > 0:
+            if {_spark_cost} is true:
+                if {sparks::%player%} >= {_cost}:
+                    remove {_cost} from {sparks::%player%}
+                    set {_item} to event-slot
+                    set lore of {_item} to ""
+                    give {_item} to player
+                    send action bar "&5Purchase successful! -%{_cost}% sparks" to player
+                    play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+                else:
+                    send action bar "&cYou don't have enough sparks! Need: %{_cost}%" to player
+                    play sound "entity.enderman.teleport" with volume 0.5 and pitch 0.5 to player
+            else:
+                if {balance::%player%} >= {_cost}:
+                    remove {_cost} from {balance::%player%}
+                    set {_item} to event-slot
+                    set lore of {_item} to ""
+                    give {_item} to player
+                    send action bar "&aSuccessful purchase! -$%{_cost}%" to player
+                    play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+                else:
+                    send action bar "&cYou cannot afford this! Need: $%{_cost}%" to player
+                    play sound "entity.enderman.teleport" with volume 0.5 and pitch 0.5 to player
+        else:
+            send action bar "&cThis item is not for sale!" to player
+
+    # ------------------------------------------
+    # МЕНЮ RTP (БЕЗОПАСНОЕ)
+    # ------------------------------------------
+    if name of event-inventory is "&8RTP":
+        cancel event
+        if index of event-slot is 11:
+            loop 20 times:
+                set {_x} to random integer between -1000 and 1000
+                set {_z} to random integer between -1000 and 1000
+                set {_loc} to location({_x}, 255, {_z}, world "world")
+                set {_safe} to highest block at {_loc}
+                
+                if {_safe} is not water:
+                    if {_safe} is not lava:
+                        if {_safe} is not air:
+                            teleport player to location 1 block above {_safe}
+                            send "&aTeleported to Overworld! (%{_x}%, %{_z}%)" to player
+                            close player's inventory
+                            stop
+            send "&cCould not find safe location, try again!" to player
+            close player's inventory
+
+        else if index of event-slot is 13:
+            loop 20 times:
+                set {_x} to random integer between -1000 and 1000
+                set {_z} to random integer between -1000 and 1000
+                
+                loop blocks from location({_x}, 100, {_z}, world "world_nether") to location({_x}, 30, {_z}, world "world_nether"):
+                    if loop-block is not air:
+                        if loop-block is not lava:
+                            if block above loop-block is air:
+                                if block above block above loop-block is air:
+                                    teleport player to location 1 block above loop-block
+                                    send "&aTeleported to Nether! (%{_x}%, %{_z}%)" to player
+                                    close player's inventory
+                                    stop
+            send "&cCould not find safe location, try again!" to player
+            close player's inventory
+
+        else if index of event-slot is 15:
+            loop 20 times:
+                set {_x} to random integer between -1000 and 1000
+                set {_z} to random integer between -1000 and 1000
+                
+                loop blocks from location({_x}, 100, {_z}, world "world_the_end") to location({_x}, 40, {_z}, world "world_the_end"):
+                    if loop-block is not air:
+                        if block above loop-block is air:
+                            if block above block above loop-block is air:
+                                teleport player to location 1 block above loop-block
+                                send "&aTeleported to The End! (%{_x}%, %{_z}%)" to player
+                                close player's inventory
+                                stop
+            send "&cCould not find safe location, try again!" to player
+            close player's inventory
+
+every 30 minutes in "world":
+    loop all players:
+        add 1 to {ckey::%loop-player%}
+        send action bar "&7You got 1 common key!" to loop-player
+
+on break:
+    set {_block_name} to name of event-block
+    if {_block_name} is "&7Common case" or "&aRare case" or "&6Legendary case":
+        if {admins::*} does not contain player:
+            cancel event
+            send "&cYou cant break this block!" to player
+    if name of player's tool is "&4Spark pickaxe":
+        set {_ce} to event-block
+        break blocks in radius 9 around player
+    if name of player's tool is "&5Spark pickaxe":
+        set {_ce} to event-block
+        loop blocks in radius 2 around {_ce}:
+            break loop-block using player's tool
+on command:
+    if {canchat::%player%} is set:
+        cancel event
+        send "&cYou are in combat mode!" to player
+
+on damage:
+  victim is a player
+  attacker is a player
+  if victim's offhand tool is totem of undying:
+    set {_tool} to victim's offhand tool
+    set {_name} to uncolored name of {_tool}
+    if enchantment level of silk touch of {_tool} > 0:
+      if {_name} is "Feather talisman":
+        chance of 10%:
+          apply slow falling to attacker for 30 seconds
+  if attacker's offhand tool is totem of undying:
+    set {_tool} to attacker's offhand tool
+    set {_name} to uncolored name of {_tool}
+    if enchantment level of silk touch of {_tool} > 0:
+      if {_name} is "Feather talisman":
+        chance of 10%:
+          apply slow falling to victim for 30 seconds
+
+on damage:
+    victim is a player
+    attacker is a player
+    
+    # Включаем режим боя и обновляем таймер
+    set {canchat::%attacker%} to true
+    set {canchat::%victim%} to true
+    set {combat_timer::%attacker%} to 20
+    set {combat_timer::%victim%} to 20
+        
+command /spawn:
+  trigger:
+    set {_r} to random integer between 1 and 3
+    if {_r} is 1:
+      teleport player to location(2785.558, 262, 9669.472, world "world")
+    else if {_r} is 2:
+      teleport player to location(2795.654, 262, 9669.724, world "world")
+    else if {_r} is 3:
+      teleport player to location(2790.453, 262, 9668.311, world "world")
+
+command /tkick <player>:
+    trigger:
+        set {_team} to {ts.playerteam::%player%}
+        if {_team} is not set:
+            send "&cYou are not in a team!"
+            stop
+        
+        set {_rank} to {ts.rank::%{_team}%::%player%}
+        if {_rank} is not "Owner":
+            send "&cInsufficient permissions!"
+            stop
+        
+        set {_target} to arg-1
+        if {_target} is not online:
+            send "&cPlayer not found!"
+            stop
+        
+        if {ts.playerteam::%{_target}%} is not {_team}:
+            send "&c%{_target}% is not in your team!"
+            stop
+        
+        if {_target} is player:
+            send "&cYou cannot kick yourself! Use &e/t leave" to player
+            stop
+        
+        set {_target_rank} to {ts.rank::%{_team}%::%{_target}%}
+        if {_target_rank} is "Owner":
+            send "&cCannot kick the owner!"
+            stop
+        
+        
+        # Kick player
+        remove {_target} from {ts.membs::%{_team}%::*}
+        delete {ts.rank::%{_team}%::%{_target}%}
+        delete {ts.playerteam::%{_target}%}
+        
+        send "&c%{_target}% has been kicked from the team!" to player
+        send "&cYou have been kicked from team '%{_team}%'!" to {_target}
+        
+        loop {ts.membs::%{_team}%::*}:
+          if loop-value is not player and loop-value is not {_target}:
+            send "&e%{_target}% has been kicked from the team!" to loop-value
+
+command /tleave:
+    trigger:
+        if {ts.playerteam::%player%} is not set:
+            send "&cYou are not in a team!"
+            stop
+        
+        set {_team} to {ts.playerteam::%player%}
+        
+        # Remove player from team
+        remove player from {ts.membs::%{_team}%::*}
+        delete {ts.rank::%{_team}%::%player%}
+        delete {ts.playerteam::%player%}
+        
+        # Check if team is empty
+        if size of {ts.membs::%{_team}%::*} is 0:
+            delete {ts::%{_team}%}
+            delete {ts.owner::%{_team}%}
+            delete {ts.home::%{_team}%}
+            send "&cTeam '%{_team}%' has been deleted (empty)!" to player
+        else:
+            # If owner left, transfer ownership
+            if {ts.owner::%{_team}%} is player:
+                set {_new_owner} to first element of {ts.membs::%{_team}%::*}
+                set {ts.owner::%{_team}%} to {_new_owner}
+                set {ts.rank::%{_team}%::%{_new_owner}%} to "Owner"
+                send "&eOwnership transferred to %{_new_owner}%" to player
+                send "&eYou are now the owner of '%{_team}%'!" to {_new_owner}
+            
+            # Announce to team
+            loop {ts.membs::%{_team}%::*}:
+                if loop-value is not player:
+                    send "&e%player% has left the team!" to loop-value
+        
+        send "&aYou left team '%{_team}%'!" to player
+
+command /tinvite <player>:
+    trigger:
+        set {_team} to {ts.playerteam::%player%}
+        if {_team} is not set:
+            send "&cYou are not in a team!" to player
+            stop
+        
+        set {_rank} to {ts.rank::%{_team}%::%player%}
+        if {_rank} is not "Owner":
+            send "&cOnly Owner or Co-Owner can invite players!" to player
+            stop
+        
+        set {_target} to arg-1
+        if {_target} is not online:
+            send "&cPlayer not found!" to player
+            stop
+        
+        if {ts.playerteam::%{_target}%} is set:
+            send "&c%{_target}% is already in a team!" to player
+            stop
+        
+        if {_target} is player:
+            send "&cYou cannot invite yourself!" to player
+            stop
+        
+        # Check if already invited
+        if {ts.invite::%{_target}%} is set:
+            send "&c%{_target}% already has an invitation!" to player
+            stop
+        
+        # Send invitation
+        set {ts.invite::%{_target}%} to {_team}
+        set {ts.invite_time::%{_target}%} to now
+        
+        send "&a%{_target}% has been invited to team '%{_team}%'!" to player
+        send "&eYou have been invited to team '%{_team}%'!" to {_target}
+        send "&eUse &a/t join %{_team}% &eto accept!" to {_target}
+
+command /tjoin [<text>]:
+    trigger:
+        if arg-1 is not set:
+            # Try to join from invitation
+            set {_team} to {ts.invite::%player%}
+            if {_team} is not set:
+                send "&cYou don't have any invitations!" to player
+                send "&cUsage: /t join <teamname>" to player
+                stop
+        else:
+            set {_team} to arg-1
+        
+        if {ts::%{_team}%} is not set:
+            send "&cTeam '%{_team}%' doesn't exist!" to player
+            stop
+        
+        if {ts.playerteam::%player%} is set:
+            send "&cYou are already in a team!" to player
+            stop
+        
+        # Check if player has invitation
+        if {ts.invite::%player%} is not {_team}:
+            send "&cYou don't have an invitation to this team!" to player
+            stop
+        
+        # Check if invitation expired (60 seconds)
+        if difference between {ts.invite_time::%player%} and now is greater than 60 seconds:
+            send "&cInvitation expired!" to player
+            delete {ts.invite::%player%}
+            delete {ts.invite_time::%player%}
+            stop
+        
+        # Join team
+        add player to {ts.membs::%{_team}%::*}
+        set {ts.playerteam::%player%} to {_team}
+        set {ts.rank::%{_team}%::%player%} to "Member"
+        
+        delete {ts.invite::%player%}
+        delete {ts.invite_time::%player%}
+        
+        send "&aYou joined team '%{_team}%'!" to player
+        send "&aYour rank: &7Member" to player
+        
+        # Announce to team
+        loop {ts.membs::%{_team}%::*}:
+            if loop-value is not player:
+                send "&e%player% has joined the team!" to loop-value
+
+command /tc <text>:
+    trigger:
+        if {ts.playerteam::%player%} is not set:
+            send "&cYou are not in a team!" to player
+            stop
+        
+        set {_team} to {ts.playerteam::%player%}
+        set {_rank} to {ts.rank::%{_team}%::%player%}
+        
+        # Format rank color
+        if {_rank} is "Owner":
+            set {_color} to "&6"
+        
+        # Send to all team members
+        loop {ts.membs::%{_team}%::*}:
+            send "&d[Team Chat] %{_color}%%{_rank}% &f%player%&7: &f%arg-1%" to loop-value
+
+command /tcreate <text>:
+    trigger:
+        if {ts.playerteam::%player%} is set:
+            send "&cYou are already in a team!" to player
+            stop
+        
+        if {ts::%arg-1%} is set:
+            send "&cThis team name already exists!" to player
+            stop
+        
+        set {ts::%arg-1%} to true
+        add player to {ts.membs::%arg-1%::*}
+        set {ts.playerteam::%player%} to arg-1
+        set {ts.rank::%arg-1%::%player%} to "Owner"  # ИСПРАВЛЕНО!
+        set {ts.owner::%arg-1%} to player            # Добавлено!
+        
+        send "&aTeam %arg-1% successfully created!" to player
+        send "&7Your rank: &6Owner" to player
+
+command /tdisband:
+    trigger:
+        if {ts.playerteam::%player%} is not set:
+            send "&cYou are not in a team!"
+            stop
+        
+        set {_team} to {ts.playerteam::%player%}
+        
+        # Проверяем ранг (теперь правильно!)
+        if {ts.rank::%{_team}%::%player%} is "Owner":
+            # Рассформировываем команду
+            loop {ts.membs::%{_team}%::*}:
+                delete {ts.playerteam::%loop-value%}
+                delete {ts.rank::%{_team}%::%loop-value%}
+                send "&cTeam '%{_team}%' has been disbanded!" to loop-value
+            
+            delete {ts::%{_team}%}
+            delete {ts.owner::%{_team}%}
+            delete {ts.membs::%{_team}%::*}
+            
+            send "&aTeam '%{_team}%' has been disbanded!" to player
+        else:
+            send "&cYou don't have rights to disband this team!"
+            stop
+
+on death:
+    if {balance::%victim%} is set:
+        set {_loss} to {balance::%victim%} * 0.01
+        if {_loss} < 1:
+            set {_loss} to 1
+        remove {_loss} from {balance::%victim%}
+        send "&cYou lost $%{_loss}% on death!" to victim
